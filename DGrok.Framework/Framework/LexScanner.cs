@@ -71,22 +71,40 @@ namespace DGrok.Framework
             get { return new Location(_fileName, _source, _index); }
         }
 
+        /// <summary>
+        /// Add contents of the given TokenSet to the _wordTypes dictionary
+        /// </summary>
+        /// <param name="tokenTypes">The TokenSet that should be added</param>
+        /// <param name="suffixLength">If the token is "If" and the enum name is "IfKeyword", 
+        /// then suffixLength should be the length of the string "Keyword"</param>
         private void AddWordTypes(IEnumerable<TokenType> tokenTypes, int suffixLength)
         {
+            // Iterate through all tokens of the TokenSet
             foreach (TokenType tokenType in tokenTypes)
             {
+                // Example: IfKeyword
                 string tokenString = tokenType.ToString();
+                // Strips the suffix. Example: IfKeyword -> If
                 string baseWord = tokenString.Substring(0, tokenString.Length - suffixLength);
+                // Add (key)word to dictionary
                 _wordTypes[baseWord.ToLowerInvariant()] = tokenType;
             }
         }
         private Match AmpersandIdentifier()
         {
+            // First character is not an Ampersand (&)
+            // or the second character is not a valid identifier beginning (A-Z or _)
             if (Peek(0) != '&' || !IsWordLeadChar(Peek(1)))
+                // Current reading position is not an AmpersandIdentifier
                 return null;
+
+            // We already know that the first two characters are valid, so let's skip these
             int offset = 2;
+            // While the next characters are valid characters for an identifier, go on counting
             while (IsWordContinuationChar(Peek(offset)))
                 ++offset;
+
+            // We've found an AmpersandIdentifier at the current reading position with the length offset
             return new Match(TokenType.Identifier, offset);
         }
         private Match BareWord()
@@ -104,6 +122,11 @@ namespace DGrok.Framework
                 tokenType = TokenType.Identifier;
             return new Match(tokenType, offset);
         }
+        /// <summary>
+        /// Makes sure the requested position is still inside the string
+        /// </summary>
+        /// <param name="offset">Offset from the current reading position</param>
+        /// <returns>True if valid position</returns>
         private bool CanRead(int offset)
         {
             return _index + offset < _source.Length;
@@ -254,12 +277,25 @@ namespace DGrok.Framework
             else
                 return new Match(TokenType.ParenStarComment, offset);
         }
+        /// <summary>
+        /// Returns the character at the given offset from the current reading position
+        /// </summary>
+        /// <param name="offset">Offset from the current reading position</param>
+        /// <returns>Character at the given offset from the current reading position or 
+        /// Char.MaxValue if the requested position is outside of the bounds</returns>
         private char Peek(int offset)
         {
             if (CanRead(offset))
                 return Read(offset);
             return Char.MaxValue;
         }
+        /// <summary>
+        /// Returns the character at the given offset from the current reading position
+        /// 
+        /// This function reads without checking if the reading position is inside the bounds. Use Peek() instead!
+        /// </summary>
+        /// <param name="offset">Offset from the current reading position</param>
+        /// <returns>Character at the given offset from the current reading position</returns>
         private char Read(int offset)
         {
             return _source[_index + offset];
