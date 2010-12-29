@@ -99,13 +99,13 @@ namespace DGrok.Framework
                 return null;
 
             // We already know that the first two characters are valid, so let's skip these
-            int offset = 2;
+            int length = 2;
             // While the next characters are valid characters for an identifier, go on counting
-            while (IsWordContinuationChar(Peek(offset)))
-                ++offset;
+            while (IsWordContinuationChar(Peek(length)))
+                ++length;
 
-            // We've found an AmpersandIdentifier at the current reading position with the length offset
-            return new Match(TokenType.Identifier, offset);
+            // We've found an AmpersandIdentifier at the current reading position with the measured length
+            return new Match(TokenType.Identifier, length);
         }
         private Match BareWord()
         {
