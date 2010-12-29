@@ -90,6 +90,10 @@ namespace DGrok.Framework
                 _wordTypes[baseWord.ToLowerInvariant()] = tokenType;
             }
         }
+        /// <summary>
+        /// Checks whether there is an AmpersandIdentifier at the current reading position
+        /// </summary>
+        /// <returns>null or a Match instance describing the length</returns>
         private Match AmpersandIdentifier()
         {
             // First character is not an Ampersand (&)
@@ -131,26 +135,49 @@ namespace DGrok.Framework
         {
             return _index + offset < _source.Length;
         }
+        /// <summary>
+        /// Checks whether there is a CurlyBraceComment (or CompilerDirective) at the current reading position
+        /// </summary>
+        /// <returns>null or a Match instance describing the length</returns>
         private Match CurlyBraceComment()
         {
+            // If the first character is not an opening curly brace this is not a match
             if (Peek(0) != '{')
                 return null;
+
+            // Skip first curly brace that we already checked
             int offset = 1;
+
+            // Read and count until the next closing curly brace or the end of the string
             while (CanRead(offset) && Peek(offset) != '}')
                 ++offset;
+
+            // Add the closing curly brace to the parsed string
             ++offset;
+
+            // {$...} is a compiler directive not a comment
             if (Peek(1) == '$')
             {
+                // Save the text inside of the directive without leading {$ and trailing whitespace and }
                 string parsedText = _source.Substring(_index + 2, offset - 3).TrimEnd();
+                // Return CompilerDirective match
                 return new Match(TokenType.CompilerDirective, offset, parsedText);
             }
             else
+                // Return CurlyBraceComment match
                 return new Match(TokenType.CurlyBraceComment, offset);
         }
+        /// <summary>
+        /// Checks whether there are two dots at the current reading position
+        /// </summary>
+        /// <returns>null or a Match instance</returns>
         private Match DotDot()
         {
+            // Make sure there are two dots
             if (Peek(0) == '.' && Peek(1) == '.')
+                // and return Match instance
                 return new Match(TokenType.DotDot, 2);
+
             return null;
         }
         private Match DoubleQuotedApostrophe()
@@ -159,6 +186,12 @@ namespace DGrok.Framework
                 return new Match(TokenType.StringLiteral, 3);
             return null;
         }
+        /// <summary>
+        /// Checks whether there is a EqualityOrAssignmentOperator at the current reading position
+        /// 
+        /// Test for each of the following operators := < <= <> = > >=
+        /// </summary>
+        /// <returns>null or a corresponding Match instance</returns>
         private Match EqualityOrAssignmentOperator()
         {
             switch (Peek(0))
@@ -183,15 +216,29 @@ namespace DGrok.Framework
             }
             return null;
         }
+        /// <summary>
+        /// Checks whether there is a HexNumber at the current reading position
+        /// </summary>
+        /// <returns>null or a corresponding Match instance</returns>
         private Match HexNumber()
         {
+            // Hex numbers begin with a $ character
             if (Peek(0) != '$')
                 return null;
+
+            // Skip the $ character
             int offset = 1;
+            // Read and count up to the last valid HexDigit
             while (IsHexDigit(Peek(offset)))
                 ++offset;
+
+            // Return Match instance
             return new Match(TokenType.Number, offset);
         }
+        /// <summary>
+        /// Checks whether the given character is a valid hexadecimal character
+        /// </summary>
+        /// <returns>True if the given character is a valid hexadecimal character</returns>
         private bool IsHexDigit(char ch)
         {
             return
@@ -199,10 +246,18 @@ namespace DGrok.Framework
                 (ch >= 'A' && ch <= 'F') ||
                 (ch >= 'a' && ch <= 'f');
         }
+        /// <summary>
+        /// Checks whether the given character is a valid character inside of an identifier
+        /// </summary>
+        /// <returns>True if the given character is a valid character inside of an identifier</returns>
         private bool IsWordContinuationChar(char ch)
         {
             return (Char.IsLetterOrDigit(ch) || ch == '_');
         }
+        /// <summary>
+        /// Checks whether the given character is a valid character to start an identifier
+        /// </summary>
+        /// <returns>True if the given character is a valid character to start an identifier</returns>
         private bool IsWordLeadChar(char ch)
         {
             return (Char.IsLetter(ch) || ch == '_');
@@ -300,6 +355,10 @@ namespace DGrok.Framework
         {
             return _source[_index + offset];
         }
+        /// <summary>
+        /// Checks whether there is a valid single character token at the current reading position
+        /// </summary>
+        /// <returns>null or a corresponding Match instance</returns>
         private Match SingleCharacter()
         {
             char ch = _source[_index];
@@ -322,13 +381,24 @@ namespace DGrok.Framework
             }
             return null;
         }
+        /// <summary>
+        /// Checks whether there is a single line comment starting at the current reading position
+        /// </summary>
+        /// <returns>null or a corresponding Match instance</returns>
         private Match SingleLineComment()
         {
+            // Check for // at the beginning of the string
             if (Peek(0) != '/' || Peek(1) != '/')
                 return null;
+            
+            // Skip already checked //
             int offset = 2;
+            // Read and count until line break
+            /// TODO include trailing \n after \r ?!
             while (CanRead(offset) && Read(offset) != '\r' && Read(offset) != '\n')
                 ++offset;
+
+            // Return Match instance
             return new Match(TokenType.SingleLineComment, offset);
         }
         private Match StringLiteral()
